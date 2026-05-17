@@ -23,13 +23,14 @@ Personal project, built in the open for my own reference. No issues, no PRs — 
 ## Setup
 
 ```bash
-pnpm install
+npm install                  # or pnpm install
 cp .env.example .env.local   # fill in what you have; UI works without keys
-pnpm db:migrate
-pnpm dev
+npm run dev
 ```
 
-API keys are optional to get the shell running. The co-pilot needs `ANTHROPIC_API_KEY`, voice needs `OPENAI_API_KEY`, and account sync needs `PLAID_CLIENT_ID` + `PLAID_SECRET`.
+The SQLite schema bootstraps itself on first connection — no migration step.
+
+API keys are optional to get the shell running. The co-pilot needs `ANTHROPIC_API_KEY`, voice needs `OPENAI_API_KEY` (also used for semantic journal search via embeddings), and account sync needs `PLAID_CLIENT_ID` + `PLAID_SECRET`. The Settings page tells you what's missing.
 
 ## A note on Wealthsimple
 

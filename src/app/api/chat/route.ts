@@ -4,6 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
 import { COPILOT_MODEL, getAnthropic, hasAnthropicKey } from "@/lib/ai/anthropic";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { buildPageContext } from "@/lib/ai/page-context";
 import { PAGE_PROMPTS, type PageKey } from "@/lib/ai/prompts";
 
 export const runtime = "nodejs";
@@ -86,7 +87,10 @@ export async function POST(req: NextRequest) {
     content: r.content,
   }));
 
-  const system = buildSystemPrompt(pageKey, context);
+  // Server-side context: pull live data for this page; client-supplied context is appended.
+  const liveContext = await buildPageContext(pageKey).catch(() => "");
+  const mergedContext = [liveContext, context].filter(Boolean).join("\n\n");
+  const system = buildSystemPrompt(pageKey, mergedContext);
   const anthropic = getAnthropic();
   const assistantId = crypto.randomUUID();
 

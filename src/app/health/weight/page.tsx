@@ -1,14 +1,13 @@
 import { PageHeader } from "@/components/shell/page-header";
+import { WeightPageClient } from "@/components/health/weight-page-client";
 
 export default function WeightPage() {
   return (
     <>
       <PageHeader kicker="health · weight" title="The slow line.">
-        Daily logs, weekly averages, 90-day trend.
+        Daily logs, weekly average, trend over the last 30/90/365 days.
       </PageHeader>
-      <section className="rounded-lg border border-dashed border-border bg-card/40 p-10 text-center text-muted-foreground">
-        Chart + log-weight input — wired in step 5.
-      </section>
+      <WeightPageClient />
     </>
   );
 }

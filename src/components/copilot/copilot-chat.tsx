@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useCopilot, type CopilotMessage } from "@/stores/copilot-store";
 import { cn } from "@/lib/utils";
 import type { PageKey } from "@/lib/ai/prompts";
+import { VoiceButton } from "./voice-button";
 
 type Props = {
   pageKey: PageKey;
@@ -141,14 +142,7 @@ export function CopilotChat({ pageKey, placeholder, seed, context }: Props) {
             }}
             className="max-h-40 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
-          <button
-            type="button"
-            title="Voice input (wired in step 4)"
-            disabled
-            className="rounded p-1 text-muted-foreground/50"
-          >
-            <Mic className="h-4 w-4" />
-          </button>
+          <VoiceButton onTranscript={(t) => setInput((cur) => (cur ? cur + " " + t : t))} />
           <button
             type="submit"
             disabled={!input.trim() || pending}
