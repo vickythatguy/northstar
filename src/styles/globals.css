@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Editorial / warm-neutral palette. Not stark white. */
+    --background: 38 30% 96%;          /* warm paper */
+    --foreground: 24 12% 14%;          /* warm ink */
+    --paper: 38 30% 96%;
+    --ink: 24 12% 14%;
+
+    --card: 38 35% 98%;
+    --card-foreground: 24 12% 14%;
+
+    --primary: 24 12% 14%;
+    --primary-foreground: 38 30% 96%;
+
+    --secondary: 32 18% 90%;
+    --secondary-foreground: 24 12% 14%;
+
+    --muted: 32 18% 92%;
+    --muted-foreground: 24 8% 40%;
+
+    --accent: 18 60% 55%;              /* warm terracotta */
+    --accent-foreground: 38 30% 98%;
+
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 38 30% 98%;
+
+    --border: 30 14% 84%;
+    --input: 30 14% 84%;
+    --ring: 24 12% 14%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 24 10% 10%;
+    --foreground: 38 20% 92%;
+    --paper: 24 10% 10%;
+    --ink: 38 20% 92%;
+
+    --card: 24 10% 13%;
+    --card-foreground: 38 20% 92%;
+
+    --primary: 38 20% 92%;
+    --primary-foreground: 24 10% 10%;
+
+    --secondary: 24 8% 18%;
+    --secondary-foreground: 38 20% 92%;
+
+    --muted: 24 8% 18%;
+    --muted-foreground: 38 10% 65%;
+
+    --accent: 18 60% 55%;
+    --accent-foreground: 38 20% 98%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 38 20% 98%;
+
+    --border: 24 8% 22%;
+    --input: 24 8% 22%;
+    --ring: 38 20% 92%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4 {
+    @apply font-serif tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+}
