@@ -10,44 +10,99 @@ type Props = {
   pageKey: PageKey;
   placeholder: string;
   seed: string;
+  /** Optional structured context the page can inject into the system prompt. */
+  context?: string;
 };
 
-export function CopilotChat({ pageKey, placeholder, seed }: Props) {
+export function CopilotChat({ pageKey, placeholder, seed, context }: Props) {
   const messages = useCopilot((s) => s.threadsByPage[pageKey] ?? []);
+  const loaded = useCopilot((s) => s.loadedPages.has(pageKey));
+  const setPageMessages = useCopilot((s) => s.setPageMessages);
   const append = useCopilot((s) => s.appendMessage);
+  const patch = useCopilot((s) => s.patchMessage);
+
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Load history from the server once per page.
+  useEffect(() => {
+    if (loaded) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/chat?pageKey=${encodeURIComponent(pageKey)}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { messages: CopilotMessage[] };
+        if (!cancelled) setPageMessages(pageKey, data.messages);
+      } catch {
+        // Network errored — leave the store empty and let the user retry.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageKey, loaded, setPageMessages]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages.length]);
+  }, [messages.length, messages[messages.length - 1]?.content]);
 
   async function send() {
     const text = input.trim();
     if (!text || pending) return;
-    const userMsg: CopilotMessage = {
+
+    append(pageKey, {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
       createdAt: Date.now(),
-    };
-    append(pageKey, userMsg);
+    });
     setInput("");
     setPending(true);
 
-    // Mocked response. Step 2 of the build order replaces this with /api/chat.
-    setTimeout(() => {
-      append(pageKey, {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content:
-          "(Co-pilot not wired yet — step 2 of the build order adds the Anthropic call. " +
-          "For now I'm just here to hold the shape of the conversation.)",
-        createdAt: Date.now(),
+    const assistantPlaceholderId = crypto.randomUUID();
+    append(pageKey, {
+      id: assistantPlaceholderId,
+      role: "assistant",
+      content: "",
+      createdAt: Date.now(),
+    });
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageKey, message: text, context }),
       });
+
+      if (!res.ok || !res.body) {
+        patch(pageKey, assistantPlaceholderId, {
+          content: `_(co-pilot unreachable: HTTP ${res.status})_`,
+        });
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        patch(pageKey, assistantPlaceholderId, { content: acc });
+      }
+    } catch (err) {
+      patch(pageKey, assistantPlaceholderId, {
+        content: `_(co-pilot error: ${
+          err instanceof Error ? err.message : String(err)
+        })_`,
+      });
+    } finally {
       setPending(false);
-    }, 400);
+    }
   }
 
   return (
@@ -61,12 +116,8 @@ export function CopilotChat({ pageKey, placeholder, seed }: Props) {
         ) : null}
 
         {messages.map((m) => (
-          <Bubble key={m.id} msg={m} />
+          <Bubble key={m.id} msg={m} pending={pending} />
         ))}
-
-        {pending && (
-          <div className="text-xs text-muted-foreground">thinking…</div>
-        )}
       </div>
 
       <form
@@ -112,19 +163,24 @@ export function CopilotChat({ pageKey, placeholder, seed }: Props) {
   );
 }
 
-function Bubble({ msg }: { msg: CopilotMessage }) {
+function Bubble({ msg, pending }: { msg: CopilotMessage; pending: boolean }) {
   const isUser = msg.role === "user";
+  const isStreamingEmpty = !isUser && pending && msg.content.length === 0;
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed",
+          "max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm leading-relaxed",
           isUser
             ? "bg-foreground text-background"
             : "bg-secondary text-foreground",
         )}
       >
-        {msg.content}
+        {isStreamingEmpty ? (
+          <span className="text-muted-foreground">thinking…</span>
+        ) : (
+          msg.content
+        )}
       </div>
     </div>
   );
