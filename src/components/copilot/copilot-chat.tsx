@@ -15,8 +15,13 @@ type Props = {
   context?: string;
 };
 
+// Stable empty reference so the Zustand selector returns the same value
+// when a page has no messages yet — otherwise React's useSyncExternalStore
+// sees a fresh `[]` every render and loops.
+const EMPTY_MESSAGES: CopilotMessage[] = [];
+
 export function CopilotChat({ pageKey, placeholder, seed, context }: Props) {
-  const messages = useCopilot((s) => s.threadsByPage[pageKey] ?? []);
+  const messages = useCopilot((s) => s.threadsByPage[pageKey] ?? EMPTY_MESSAGES);
   const loaded = useCopilot((s) => s.loadedPages.has(pageKey));
   const setPageMessages = useCopilot((s) => s.setPageMessages);
   const append = useCopilot((s) => s.appendMessage);
