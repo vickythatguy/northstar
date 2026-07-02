@@ -1,40 +1,89 @@
-# northstar
+# Drift 🌊
 
-A personal command center — budgets, body, mind, and goals — with an AI co-pilot on every page.
+**A sea for half-formed ideas.**
 
-This is a single-user app I built for myself. Not a product, not a SaaS, not multi-tenant. Just my own quiet corner of the internet where the numbers, the workouts, and the journal entries all live together, and where an AI sits in the right margin to help me make sense of them.
-
-## What's inside
-
-- **Vision board** — the home screen. Goals as cards, target dates, the occasional reflection.
-- **Budget** — accounts via Plaid (Wealthsimple Cash + my bank), transactions, categories, budgets, the usual. Manual CSV fallback for what Plaid can't reach.
-- **Health** — weight chart, food log (CSV + paste-to-parse until I pick a phone-app integration), and an exercise tracker that doubles as my AI gym trainer with a weekly split, today's checklist, and progressive-overload nudges.
-- **Journal** — write or speak, entries auto-categorize into `gym`, `health`, `mental health`, `budget`, `goals`. Weekly digest every Sunday.
-- **Co-pilot panel** — a persistent chat on the right edge of every page, context-aware to whatever I'm looking at. Text or voice (Whisper).
+A bright, cartoonish 3D water-planet you can spin and zoom. Drop little
+sailboats onto the water — each boat is an idea. Tap a boat to feed it thoughts
+and it grows. Calm, playful, Pinterest-aesthetic. Not a productivity tool.
 
 ## Stack
 
-Next.js 15 · TypeScript · Tailwind · shadcn/ui · Drizzle · SQLite (local) / Supabase (deployed) · Anthropic SDK · OpenAI Whisper · Plaid · Recharts
+- **Vite + React + TypeScript + Tailwind CSS**
+- **React Three Fiber** (`@react-three/fiber`) + `@react-three/drei` for the 3D scene
+- **Framer Motion** for UI + the sun character
+- **Dexie** (IndexedDB) for persistence
+- **Zustand** for app state
 
-## Status
+Mobile-first, touch-driven, targets ~60fps on a phone.
 
-Personal project, built in the open for my own reference. No issues, no PRs — but if you stumbled in here and want to fork it for yourself, that's the spirit.
-
-## Setup
+## Run it
 
 ```bash
-pnpm install
-cp .env.example .env.local   # fill in what you have; UI works without keys
-pnpm db:migrate
-pnpm dev
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # type-check + production build
 ```
 
-API keys are optional to get the shell running. The co-pilot needs `ANTHROPIC_API_KEY`, voice needs `OPENAI_API_KEY`, and account sync needs `PLAID_CLIENT_ID` + `PLAID_SECRET`.
+## How it works
 
-## A note on Wealthsimple
+### Flowing water (the important part)
 
-There is no public personal API for Wealthsimple. Cash accounts come through Plaid; for Invest/Trade positions the app supports manual entry and screenshot OCR. If that changes, this README is the first thing I'll update.
+The sphere geometry never moves — no vertex displacement, no jelly wobble. All
+motion lives in a custom fragment shader (`src/shaders/water.ts`) that scrolls a
+domain of 3D simplex noise across the surface to fake flowing currents and foam,
+blended across three tones of blue.
 
-## License
+**Flow follows rotation.** The drag controller
+(`src/components/PlanetController.tsx`) tracks the planet's angular velocity and
+feeds it to the shader. The trick (see `src/lib/flowState.ts`): the tangential
+velocity of a surface point `n` on a sphere spinning at `ω` is `ω × n`, whose
+time-integral is `(∫ω dt) × n = θ × n`. We accumulate the single vector
+`θ = ∫ω dt` on the CPU and let the shader compute `θ × n` per fragment — so
+currents stream in the direction you drag, faster the faster you spin, and glide
+back to a gentle idle drift when you let go, with **no popping** when the speed
+changes.
 
-MIT — though there's nothing here you'd want.
+### The sun — a Talking-Tom character
+
+`src/components/SunCharacter.tsx` is a googly smiley rendered as **DOM behind the
+transparent R3F canvas**, so the opaque globe occludes it and it peeks out
+around the edges. Its eyes track your cursor/finger, it blinks on its own, and
+poking it (routed via `onPointerMissed` since the canvas is on top) triggers a
+cycling set of springy Framer-Motion reactions — squish, boing, spin.
+
+### Boats = ideas
+
+Tap the water to raycast the sphere and drop a boat at that point (stored as a
+unit-sphere position so it rotates with the planet). Boats bob, grow as you add
+thoughts, and show a floating name label when zoomed in and facing the camera.
+
+### Navigation
+
+A shelf of idea chips at the bottom flies the planet so an idea faces front and
+zooms in. The 🌊 button surfaces back out. Drag to rotate, wheel/pinch to zoom,
+on-screen +/− as a fallback.
+
+### Persistence
+
+Everything lives in IndexedDB via Dexie (`src/lib/db.ts`) and reloads on refresh
+— boats reappear where you left them.
+
+## Structure
+
+```
+src/
+  App.tsx                     layers: sky → sun → canvas → UI
+  store.ts                    useDriftStore (Zustand) + Dexie writes
+  shaders/water.ts            the flow shader (commented)
+  lib/
+    flowState.ts              rotation → flow uniform bridge (commented)
+    controls.ts               camera/zoom + pointer control state
+    db.ts                     Dexie schema
+    types.ts, motion.ts, sound.ts, sunLayout.ts
+  components/
+    Sky, SunCharacter, Scene, PlanetController,
+    Water, Boat, IdeaSheet, IdeaShelf, Controls
+```
+
+Respects `prefers-reduced-motion` (dampened idle flow, calmer sun & boats, no
+auto-spin).
