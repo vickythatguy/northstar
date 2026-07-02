@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Drifting clouds ------------------------------------------------------- */
+@keyframes drift-cloud {
+  from {
+    transform: translateX(-20vw);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 100px;
+  filter: blur(1px);
+  will-change: transform;
+}
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  background: inherit;
+  border-radius: 50%;
+}
+.cloud::before {
+  width: 55%;
+  height: 170%;
+  left: 12%;
+}
+.cloud::after {
+  width: 45%;
+  height: 140%;
+  right: 14%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud {
+    animation: none !important;
+  }
+}
